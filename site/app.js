@@ -130,6 +130,7 @@ function legend(series) {
 
 function barChart(chart) {
   const rows = chart.rows || [];
+  if (rows.some((row) => Number(row.value) < 0)) return divergingBarChart(chart);
   const width = 860;
   const gutter = 230;
   const rowH = 44;
@@ -148,6 +149,57 @@ function barChart(chart) {
   });
   parts.push("</svg>");
   return svg(parts.join(""));
+}
+
+function divergingBarChart(chart) {
+  const rows = chart.rows || [];
+  const width = 860;
+  const gutter = 88;
+  const rowH = 44;
+  const height = Math.max(rows.length, 1) * rowH + 16;
+  const extent = Math.max(...rows.map((row) => Math.abs(Number(row.value))), 1);
+  const innerLeft = gutter + 36;
+  const innerRight = width - 40;
+  const zero = (innerLeft + innerRight) / 2;
+  const scale = (zero - innerLeft) / extent;
+  const parts = [`<svg viewBox="0 0 ${width} ${height}" role="img">`];
+  parts.push(
+    `<line class="zero-line" data-zero="1" x1="${zero}" x2="${zero}" y1="4" y2="${height - 4}" stroke="#d5e2ef" stroke-width="1.5"></line>`,
+  );
+  parts.push(`<text x="${zero}" y="12" fill="#9aafc4" font-size="11" text-anchor="middle">0</text>`);
+  rows.forEach((row, index) => {
+    const value = Number(row.value);
+    const y = 14 + index * rowH;
+    const label = wrapLabel(row.label);
+    parts.push(`<text x="0" y="${y + 16}" fill="#f4f7fb" font-size="13">${label[0]}</text>`);
+    const bar = Math.abs(value) * scale;
+    const shown = axisLabel(value);
+    const name = escapeHtml(row.label);
+    if (value < 0) {
+      const x = zero - bar;
+      parts.push(
+        `<rect data-label="${name}" data-sign="neg" x="${x}" y="${y + 6}" width="${bar}" height="16" rx="4" fill="#3ee0a0"></rect>`,
+      );
+      parts.push(
+        `<text data-bar-label="${name}" x="${x - 6}" y="${y + 18}" fill="#d5e2ef" font-size="12" text-anchor="end">${shown}</text>`,
+      );
+    } else {
+      parts.push(
+        `<rect data-label="${name}" data-sign="pos" x="${zero}" y="${y + 6}" width="${Math.max(bar, value === 0 ? 0 : 2)}" height="16" rx="4" fill="${chart.color || "#4cc9f0"}"></rect>`,
+      );
+      parts.push(
+        `<text data-bar-label="${name}" x="${zero + Math.max(bar, 2) + 6}" y="${y + 18}" fill="#d5e2ef" font-size="12">${shown}</text>`,
+      );
+    }
+  });
+  parts.push("</svg>");
+  return svg(parts.join(""));
+}
+
+function axisLabel(value) {
+  const rounded = Math.round(value);
+  if (Math.abs(value - rounded) < 0.05) return String(rounded);
+  return value.toFixed(1);
 }
 
 function shortNumber(value) {
