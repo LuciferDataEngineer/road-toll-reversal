@@ -2,9 +2,15 @@
 
 from __future__ import annotations
 
-from airflow.models.dagbag import DagBag
+try:
+    from airflow.dag_processing.dagbag import DagBag
+except ImportError:
+    from airflow.models.dagbag import DagBag
 
-bag = DagBag(dag_folder="/work/dags", include_examples=False)
+try:
+    bag = DagBag(dag_folder="/work/dags", include_examples=False)
+except TypeError:
+    bag = DagBag(dag_folder="/work/dags")
 if bag.import_errors:
     raise SystemExit(bag.import_errors)
 
