@@ -1,0 +1,71 @@
+apiVersion: v3.1.0
+kind: DataContract
+id: urn:datacontract:road-toll:population:erp
+name: Population
+version: 1.0.0
+status: active
+domain: population
+description:
+  purpose: Estimated resident population by state and age band, used as the denominator for death rates.
+  usage: Rates are deaths divided by this population, expressed per 100,000 people.
+  limitations: The newest state figure in this release is 31 March 2026. Community population is a separate SA4 table and currently ends at 30 June 2025.
+team:
+  name: Population domain
+  members:
+    - username: population-owner
+      role: Owner
+servers:
+  - server: gold
+    type: duckdb
+    description: Local gold warehouse built from the ABS Data API extract.
+    database: data/gold/road_toll.duckdb
+    schema: main
+schema:
+  - name: erp_state_age
+    physicalName: erp_state_age
+    physicalType: table
+    description: Persons by state, quarter, and age band. Single years of age were summed; the 85-and-over duplicate code was dropped before banding.
+    properties:
+      - name: state
+        logicalType: string
+        physicalType: VARCHAR
+        required: true
+      - name: year
+        logicalType: integer
+        physicalType: INTEGER
+        required: true
+      - name: quarter
+        logicalType: integer
+        physicalType: INTEGER
+        required: true
+      - name: age_band
+        logicalType: string
+        physicalType: VARCHAR
+        required: true
+      - name: population
+        logicalType: integer
+        physicalType: BIGINT
+        required: true
+    quality:
+      - type: sql
+        description: Australia at 31 March 2026 matches the ABS extract used in this release.
+        query: |
+          SELECT population FROM erp_state_age
+          WHERE state = 'AUS' AND year = 2026 AND quarter = 1 AND age_band = 'All ages'
+        mustBe: 27921150
+      - type: sql
+        description: No negative populations.
+        query: SELECT COUNT(*) FROM erp_state_age WHERE population < 0
+        mustBe: 0
+      - type: sql
+        description: Age bands for a state and quarter sum to the all-ages total.
+        query: |
+          SELECT COUNT(*) FROM (
+            SELECT state, year, quarter,
+                   MAX(CASE WHEN age_band = 'All ages' THEN population END) AS total,
+                   SUM(CASE WHEN age_band != 'All ages' THEN population END) AS parts
+            FROM erp_state_age
+            GROUP BY 1, 2, 3
+          )
+          WHERE total != parts
+        mustBe: 0

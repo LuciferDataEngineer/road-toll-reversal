@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Where Australia's road toll is rising</title>
+  <meta name="description" content="Which states, roads and road users are above the path to halve deaths by 2030, and where holiday-season safety money should go.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">Road toll <span>reversal</span></div>
+    <nav class="tabs" aria-label="Pages">
+      <button type="button" class="tab active" data-tab="toll">The toll</button>
+      <button type="button" class="tab" data-tab="where">Where</button>
+      <button type="button" class="tab" data-tab="who">Who</button>
+      <button type="button" class="tab" data-tab="when">When</button>
+      <button type="button" class="tab" data-tab="holiday">Summer plan</button>
+    </nav>
+    <p class="asof" id="asof"></p>
+  </header>
+  <div class="filters" id="filters" role="tablist" aria-label="State or territory"></div>
+  <main id="main">
+    <p class="loading" id="loading">Loading the latest figures…</p>
+    <section id="page-toll" class="page"></section>
+    <section id="page-where" class="page" hidden></section>
+    <section id="page-who" class="page" hidden></section>
+    <section id="page-when" class="page" hidden></section>
+    <section id="page-holiday" class="page" hidden></section>
+  </main>
+  <footer class="sources">
+    <p><strong>Sources.</strong> Deaths: Bureau of Infrastructure and Transport Research Economics, Australian Road Deaths Database, current to September 2026, Creative Commons Attribution. Population: Australian Bureau of Statistics estimated resident population, Creative Commons Attribution. Victoria crashes: Department of Transport and Planning, Creative Commons Attribution. The halving-by-2030 rule: National Road Safety Strategy 2021–30. State outlines: Natural Earth, public domain.</p>
+    <p id="fineprint"></p>
+  </footer>
+  <script src="app.js"></script>
+</body>
+</html>

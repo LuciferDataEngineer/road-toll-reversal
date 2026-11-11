@@ -1,0 +1,12 @@
+duckdb>=1.5,<1.6
+pandas>=2.2,<3
+pyarrow>=16
+numpy>=1.26,<3
+pymc>=5.16,<7
+arviz>=0.20
+pyyaml>=6,<7
+pytest>=8
+ruff>=0.6
+datacontract-cli[duckdb]>=0.11
+ibis-framework[duckdb]>=10,<13
+requests>=2.31
