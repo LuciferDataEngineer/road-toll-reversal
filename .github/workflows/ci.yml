@@ -71,16 +71,15 @@ jobs:
       - uses: actions/checkout@v4
       - name: Parse the mesh and run each domain
         run: |
-          docker run --rm \
+          docker run --rm --entrypoint bash \
             -v "$PWD:/work" \
             -w /work \
             -e AIRFLOW_HOME=/tmp/airflow \
             -e AIRFLOW__CORE__DAGS_FOLDER=/work/dags \
             -e AIRFLOW__CORE__LOAD_EXAMPLES=false \
             -e PYTHONPATH=/work/src \
-            --user root \
             apache/airflow:3.4.0-python3.12 \
-            bash -lc 'pip install "duckdb>=1.5,<1.6" pandas pyarrow pyyaml && airflow db migrate && python /work/scripts/airflow_smoke.py && airflow dags test crashes_domain 2026-11-01 && airflow dags test population_domain 2026-11-01 && airflow dags test targets_domain 2026-11-01'
+            -lc 'pip install "duckdb>=1.5,<1.6" pandas pyarrow pyyaml && airflow db migrate && python /work/scripts/airflow_smoke.py && airflow dags test crashes_domain 2026-11-01 && airflow dags test population_domain 2026-11-01 && airflow dags test targets_domain 2026-11-01'
 
   kind:
     runs-on: ubuntu-latest

@@ -77,7 +77,7 @@ flowchart LR
 | DuckDB | Default warehouse. One file, SQL the contracts can test, fast on 60,000 death rows. No server to keep up. |
 | Open Data Contract Standard + datacontract | Each domain publishes the shape and the checks it will stand behind, including “1,334 deaths in the 12 months to September 2026”. CI fails if the gold tables drift. |
 | PyMC | Small communities have noisy death counts. Partial pooling stops a single bad year from looking like a hotspot, and the predictive check shows the model still matches the total toll. |
-| Apache Polaris + Iceberg + MinIO | The gold gap table is a real Iceberg table. Domain principals are separate. DuckDB reads it back. All local, no cloud account. |
+| Apache Polaris + Iceberg + MinIO-compatible storage | The gold gap table is a real Iceberg table. Domain principals are separate. DuckDB reads it back. Official MinIO images no longer allow anonymous pulls, so Compose uses `pgsty/silo`, a free MinIO-compatible fork with the same S3 API. |
 | Airflow 3 assets | The targets product is not on a clock. It runs when the crashes and population assets update. |
 | ClickHouse | A serving engine for the same questions, benchmarked against DuckDB. At this size DuckDB is the right default; the write-up says so with timings. |
 | Helm + kind | The fast pipeline is a charted Kubernetes Job, not a hand-applied manifest. |
@@ -208,7 +208,7 @@ Five tabs, not one long scroll: the toll, where, who, when, and the summer plan.
 - The state paths are a reading of the national rule, not targets the Strategy itself sets.
 - Victoria’s open file is not the BITRE death count and is not complete for 2026.
 - The hierarchical model’s state-spread parameter is not as settled as the community rankings. More draws would tighten it; the listed places already clear their state by a wide margin.
-- Polaris here is a single-node compose with bootstrap credentials. That is a catalog for the lab, not a production realm.
+- Polaris here is a single-node compose with bootstrap credentials. That is a catalog for the lab, not a production realm. The object store is Silo (`pgsty/silo`), a free MinIO-compatible fork, because the official MinIO images no longer allow anonymous pulls.
 
 Next: a serious-injury path once a national serious-injury file is as open as the deaths file, and vehicle-kilometres if a free state series can be joined without a private key.
 
