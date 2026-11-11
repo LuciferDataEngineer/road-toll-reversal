@@ -6,6 +6,7 @@ pymc>=5.16,<7
 arviz>=0.20
 pyyaml>=6,<7
 pytest>=8
+playwright>=1.49
 ruff>=0.6
 datacontract-cli[duckdb]>=0.11
 ibis-framework[duckdb]>=10,<13

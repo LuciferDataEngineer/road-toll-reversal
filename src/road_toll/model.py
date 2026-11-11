@@ -18,6 +18,7 @@ DRAWS = 500
 TUNE = 500
 CHAINS = 4
 SEED = 20261111
+TARGET_ACCEPT = 0.95
 
 
 def _load_frame():
@@ -60,7 +61,14 @@ def run_model(draws: int = DRAWS, tune: int = TUNE, chains: int = CHAINS) -> dic
     exposure = frame["population"].to_numpy() / 100_000.0
 
     coords = {"sa4": sa4_list, "state": states, "group": groups}
+    # One seed per chain, spawned from a single SeedSequence, and chains run
+    # one at a time so the schedule does not depend on how many cores the runner has.
+    chain_seeds = [
+        int(seed) for seed in np.random.SeedSequence(SEED).generate_state(chains)
+    ]
     with pm.Model(coords=coords):
+        # Non-centred: the raw effects are unit normal and the scale is separate,
+        # which keeps the sampler off the funnel between a variance and its offsets.
         sigma_state = pm.HalfNormal("sigma_state", 0.5)
         sigma_sa4 = pm.HalfNormal("sigma_sa4", 0.5)
         sigma_group = pm.HalfNormal("sigma_group", 0.5)
@@ -82,13 +90,17 @@ def run_model(draws: int = DRAWS, tune: int = TUNE, chains: int = CHAINS) -> dic
             draws=draws,
             tune=tune,
             chains=chains,
-            cores=min(chains, 2),
-            random_seed=SEED,
+            cores=1,
+            random_seed=chain_seeds,
             progressbar=False,
-            target_accept=0.9,
+            target_accept=TARGET_ACCEPT,
             compute_convergence_checks=True,
         )
-        ppc = pm.sample_posterior_predictive(idata, random_seed=SEED, progressbar=False)
+        ppc = pm.sample_posterior_predictive(
+            idata,
+            random_seed=SEED + 10_000,
+            progressbar=False,
+        )
 
     def _samples(group, name: str) -> np.ndarray:
         data = group[name]
@@ -171,6 +183,9 @@ def run_model(draws: int = DRAWS, tune: int = TUNE, chains: int = CHAINS) -> dic
         "zero_share_predicted": zero_pred,
         "rhat": rhat,
         "divergences": divergences,
+        "random_seed": SEED,
+        "chain_seeds": chain_seeds,
+        "target_accept": TARGET_ACCEPT,
         "draws": draws,
         "tune": tune,
         "chains": chains,
