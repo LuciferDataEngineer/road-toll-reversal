@@ -139,7 +139,7 @@ For each statistical area, road-user group and year from 2022 to 2025:
 
 `log(rate)` is a national level, plus a state shift, plus a community shift pulled toward that state, plus a road-user shift. Four chains, 500 tune and 500 draw iterations, seed 20261111. A place is called out only when at least five people in that group died over the four years and the 10th–90th percentile of its rate sits entirely above the state rate.
 
-The predictive check reproduces the observed total (4,916 deaths in those cells; the predictive mean matches it, and the central 90% band contains it) and a similar share of community-years with no deaths. There were no divergent samples. The state-spread parameter’s r-hat is about 1.04, which is a bit high; the places listed on the page are unanimous across samples (the chance they sit above their state is effectively 1). Re-run with `make model`. The summary is `data/model/ppc.json`.
+The predictive check reproduces the observed total (4,916 deaths in those cells; the predictive mean matches it, and the central 90% band contains it) and a similar share of community-years with no deaths. Each chain has its own seed from one master seed, sampling uses a 95% target acceptance rate, and divergent transitions stay under 1% of the draws. The state-spread parameter’s r-hat is about 1.04, which is a bit high; the places listed on the page are unanimous across samples (the chance they sit above their state is effectively 1). Re-run with `make model`. The summary is `data/model/ppc.json`.
 
 ## How to run
 
