@@ -1,0 +1,52 @@
+# Local serving and catalog. The fast path does not need this file.
+# Airflow is started from the official image in CI so this file stays the lakehouse stack.
+
+services:
+  minio:
+    image: quay.io/minio/minio:RELEASE.2025-04-22T22-12-26Z
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: minio_root
+      MINIO_ROOT_PASSWORD: m1n1opwd
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+
+  bucket:
+    image: quay.io/minio/mc:RELEASE.2025-04-16T18-13-26Z
+    depends_on:
+      - minio
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        until mc alias set pol http://minio:9000 minio_root m1n1opwd; do sleep 2; done
+        mc mb -p pol/road-toll || true
+        echo bucket-ready
+
+  polaris:
+    image: apache/polaris:1.8.0
+    depends_on:
+      - minio
+    ports:
+      - "8181:8181"
+      - "8182:8182"
+    environment:
+      AWS_REGION: us-west-2
+      AWS_ACCESS_KEY_ID: minio_root
+      AWS_SECRET_ACCESS_KEY: m1n1opwd
+      POLARIS_BOOTSTRAP_CREDENTIALS: POLARIS,root,s3cr3t
+      polaris.realm-context.realms: POLARIS
+      quarkus.otel.sdk.disabled: "true"
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.12
+    ports:
+      - "8123:8123"
+    environment:
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: roadtoll
+      CLICKHOUSE_DB: toll
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144

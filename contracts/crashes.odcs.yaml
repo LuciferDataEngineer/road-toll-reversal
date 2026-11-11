@@ -1,0 +1,119 @@
+apiVersion: v3.1.0
+kind: DataContract
+id: urn:datacontract:road-toll:crashes:fatalities
+name: Road deaths
+version: 1.0.0
+status: active
+domain: crashes
+description:
+  purpose: One row per person who died in a road crash in Australia, as published by BITRE.
+  usage: State agencies use this to see who is dying, when, and on what kind of road.
+  limitations: Recent months are preliminary and are revised. Geography is missing for some older and very recent rows. This is not the Victoria crash file.
+team:
+  name: Crashes domain
+  members:
+    - username: crashes-owner
+      role: Owner
+servers:
+  - server: gold
+    type: duckdb
+    description: Local gold warehouse built from the committed snapshot.
+    database: data/gold/road_toll.duckdb
+    schema: main
+schema:
+  - name: fatalities
+    physicalName: fatalities
+    physicalType: table
+    description: Person-level Australian road deaths, 1989 to September 2026.
+    properties:
+      - name: fatality_id
+        logicalType: integer
+        physicalType: BIGINT
+        required: true
+        unique: true
+        description: Surrogate key, one per person killed.
+      - name: crash_id
+        logicalType: string
+        physicalType: VARCHAR
+        required: true
+        description: BITRE crash identifier. More than one person can share a crash.
+      - name: state
+        logicalType: string
+        physicalType: VARCHAR
+        required: true
+        description: State or territory abbreviation.
+      - name: year
+        logicalType: integer
+        physicalType: INTEGER
+        required: true
+      - name: month
+        logicalType: integer
+        physicalType: INTEGER
+        required: true
+      - name: road_user_group
+        logicalType: string
+        physicalType: VARCHAR
+        required: true
+        description: Driver, passenger, pedestrian, motorcyclist, cyclist, or unknown.
+      - name: age
+        logicalType: integer
+        physicalType: INTEGER
+        required: false
+        description: Age in years. Missing when BITRE coded the age as unknown.
+      - name: holiday_season
+        logicalType: boolean
+        physicalType: BOOLEAN
+        required: true
+        description: True for December and January.
+    quality:
+      - type: sql
+        description: The published 12 months to September 2026 contain 1,334 deaths.
+        query: |
+          SELECT COUNT(*) FROM fatalities
+          WHERE (year = 2025 AND month >= 10) OR (year = 2026 AND month <= 9)
+        mustBe: 1334
+      - type: sql
+        description: No death is dated outside 1989–2026.
+        query: |
+          SELECT COUNT(*) FROM fatalities
+          WHERE year < 1989 OR year > 2026 OR month < 1 OR month > 12
+        mustBe: 0
+      - type: sql
+        description: Ages are missing or between 0 and 120.
+        query: |
+          SELECT COUNT(*) FROM fatalities
+          WHERE age IS NOT NULL AND (age < 0 OR age > 120)
+        mustBe: 0
+  - name: vic_crashes
+    physicalName: vic_crashes
+    physicalType: table
+    description: Victoria fatal and serious-injury crashes from the state open data file.
+    properties:
+      - name: accident_no
+        logicalType: string
+        physicalType: VARCHAR
+        required: true
+        unique: true
+      - name: accident_date
+        logicalType: date
+        physicalType: DATE
+        required: true
+      - name: severity
+        logicalType: string
+        physicalType: VARCHAR
+        required: true
+      - name: deaths
+        logicalType: integer
+        physicalType: INTEGER
+        required: false
+    quality:
+      - type: sql
+        description: Only fatal and serious-injury crashes are in the snapshot.
+        query: |
+          SELECT COUNT(*) FROM vic_crashes
+          WHERE severity NOT IN ('Fatal accident', 'Serious injury accident')
+        mustBe: 0
+      - type: sql
+        description: The Victoria extract has enough rows to support a road-environment cut.
+        query: SELECT COUNT(*) FROM vic_crashes
+        mustBeGreaterThan: 10000

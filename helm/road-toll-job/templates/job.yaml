@@ -1,0 +1,29 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Values.nameOverride }}
+  labels:
+    app: road-toll
+spec:
+  backoffLimit: 1
+  ttlSecondsAfterFinished: 600
+  template:
+    metadata:
+      labels:
+        app: road-toll
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: pipeline
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["python", "-m", "road_toll.cli", "pipeline"]
+          env:
+            - name: PYTHONPATH
+              value: /app/src
+          resources:
+            requests:
+              cpu: "250m"
+              memory: 512Mi
+            limits:
+              memory: 2Gi

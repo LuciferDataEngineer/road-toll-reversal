@@ -1,0 +1,103 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compiler headers for the rate model
+        run: sudo apt-get update && sudo apt-get install -y g++ python3-dev
+      - name: Install
+        run: python -m pip install -r requirements.txt
+      - name: Pipeline, model, and dashboard
+        run: make all
+      - name: Contracts, lint, and tests
+        run: make contracts && make test
+
+  clickhouse:
+    runs-on: ubuntu-latest
+    services:
+      clickhouse:
+        image: clickhouse/clickhouse-server:24.12
+        env:
+          CLICKHOUSE_USER: default
+          CLICKHOUSE_PASSWORD: roadtoll
+          CLICKHOUSE_DB: toll
+        ports:
+          - 8123:8123
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -r requirements.txt
+      - run: make pipeline
+      - run: make bench
+      - uses: actions/upload-artifact@v4
+        with:
+          name: clickhouse-benchmark
+          path: data/benchmark/results.json
+
+  polaris:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -r requirements.txt -r requirements-iceberg.txt
+      - run: make pipeline
+      - name: Catalog, domain roles, Iceberg write, DuckDB read
+        run: |
+          docker compose up -d minio bucket polaris
+          python -m road_toll.polaris_publish
+      - name: Stop the catalog
+        if: always()
+        run: docker compose down -v
+
+  airflow:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse the mesh and run each domain
+        run: |
+          docker run --rm \
+            -v "$PWD:/work" \
+            -w /work \
+            -e AIRFLOW_HOME=/tmp/airflow \
+            -e AIRFLOW__CORE__DAGS_FOLDER=/work/dags \
+            -e AIRFLOW__CORE__LOAD_EXAMPLES=false \
+            -e PYTHONPATH=/work/src \
+            --user root \
+            apache/airflow:3.4.0-python3.12 \
+            bash -lc 'pip install "duckdb>=1.5,<1.6" pandas pyarrow pyyaml && airflow db migrate && python /work/scripts/airflow_smoke.py && airflow dags test crashes_domain 2026-11-01 && airflow dags test population_domain 2026-11-01 && airflow dags test targets_domain 2026-11-01'
+
+  kind:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install kind and Helm
+        run: |
+          curl -fsSL -o kind https://kind.sigs.k8s.io/dl/v0.29.0/kind-linux-amd64
+          chmod +x kind && sudo mv kind /usr/local/bin/kind
+          curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+      - name: Build the pipeline image and run the chart
+        run: |
+          docker build -t road-toll-pipeline:local .
+          kind create cluster --name road-toll
+          kind load docker-image road-toll-pipeline:local --name road-toll
+          helm upgrade --install road-toll helm/road-toll-job --set image.pullPolicy=Never
+          kubectl wait --for=condition=complete job/road-toll-pipeline --timeout=180s
+          kubectl logs job/road-toll-pipeline | tee /tmp/job.log
+          grep -q "1334" /tmp/job.log

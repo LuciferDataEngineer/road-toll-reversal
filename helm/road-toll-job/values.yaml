@@ -1,0 +1,6 @@
+image:
+  repository: road-toll-pipeline
+  tag: local
+  pullPolicy: IfNotPresent
+
+nameOverride: road-toll-pipeline

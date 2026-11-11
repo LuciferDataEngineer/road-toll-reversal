@@ -1,0 +1,82 @@
+apiVersion: v3.1.0
+kind: DataContract
+id: urn:datacontract:road-toll:targets:path
+name: Path to 2030
+version: 1.0.0
+status: active
+domain: targets
+description:
+  purpose: Monthly path from each state's 2018–2020 average death toll down to half of that toll at the end of 2030.
+  usage: A 12-month toll above this path is off track. State paths use the national rule on each state's own baseline. The Strategy itself sets a national target, not state targets.
+  limitations: The line is straight. It is not a forecast of what will happen if nothing changes.
+team:
+  name: Targets domain
+  members:
+    - username: targets-owner
+      role: Owner
+servers:
+  - server: gold
+    type: duckdb
+    description: Local gold warehouse. Death counts come from the crashes domain; the rule comes from the National Road Safety Strategy.
+    database: data/gold/road_toll.duckdb
+    schema: main
+schema:
+  - name: state_month_path
+    physicalName: state_month_path
+    physicalType: table
+    description: One row per state (and Australia) per month from 2018 to 2030.
+    properties:
+      - name: state
+        logicalType: string
+        physicalType: VARCHAR
+        required: true
+      - name: year
+        logicalType: integer
+        physicalType: INTEGER
+        required: true
+      - name: month
+        logicalType: integer
+        physicalType: INTEGER
+        required: true
+      - name: baseline_annual
+        logicalType: number
+        physicalType: DOUBLE
+        required: true
+        description: Average annual deaths in 2018, 2019 and 2020.
+      - name: trajectory_factor
+        logicalType: number
+        physicalType: DOUBLE
+        required: false
+        description: Share of the baseline still on the path. 1 at the end of 2020, 0.5 at the end of 2030.
+      - name: rolling_deaths
+        logicalType: number
+        physicalType: DOUBLE
+        required: false
+        description: Deaths in the 12 months ending this month. Empty after the latest published month.
+      - name: target_deaths
+        logicalType: number
+        physicalType: DOUBLE
+        required: false
+      - name: excess_deaths
+        logicalType: number
+        physicalType: DOUBLE
+        required: false
+    quality:
+      - type: sql
+        description: The path is exactly half the baseline at December 2030.
+        query: |
+          SELECT trajectory_factor FROM state_month_path
+          WHERE state = 'AUS' AND year = 2030 AND month = 12
+        mustBe: 0.5
+      - type: sql
+        description: The path still allows the full baseline at December 2020.
+        query: |
+          SELECT trajectory_factor FROM state_month_path
+          WHERE state = 'AUS' AND year = 2020 AND month = 12
+        mustBe: 1.0
+      - type: sql
+        description: Rolling deaths to September 2026 are the published national toll.
+        query: |
+          SELECT rolling_deaths FROM state_month_path
+          WHERE state = 'AUS' AND year = 2026 AND month = 9
+        mustBe: 1334
