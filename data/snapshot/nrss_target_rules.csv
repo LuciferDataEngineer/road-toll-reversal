@@ -1,0 +1,8 @@
+parameter,value,unit,meaning,source_url
+deaths_reduction,50,percent,Halve the number of road deaths by 2030,https://www.roadsafety.gov.au/nrss/fact-sheets/performance-monitoring
+deaths_baseline_start,2018,year,Baseline is the average of these calendar years,https://www.roadsafety.gov.au/nrss/fact-sheets/performance-monitoring
+deaths_baseline_end,2020,year,Baseline is the average of these calendar years,https://www.roadsafety.gov.au/nrss/fact-sheets/performance-monitoring
+horizon_year,2030,year,End of the National Road Safety Strategy,https://www.roadsafety.gov.au/nrss/fact-sheets/performance-monitoring
+per_capita_deaths_reduction,55,percent,Per-person death-rate reduction aimed for by 2030,https://www.roadsafety.gov.au/nrss/fact-sheets/performance-monitoring
+serious_injury_reduction,30,percent,Serious-injury reduction aimed for by 2030,https://www.roadsafety.gov.au/nrss/fact-sheets/performance-monitoring
+trajectory,linear,shape,Straight line from the baseline at end-2020 to the 2030 target,https://www.roadsafety.gov.au/nrss/fact-sheets/performance-monitoring
